@@ -7,7 +7,7 @@ import joblib
 # ---------------------------------------
 # LOAD MODEL .SAV
 # ---------------------------------------
-model = joblib.load("model_tpt.sav")
+model = joblib.load("pengangguran.sav")
 
 # ---------------------------------------
 # LOAD DATASET
