@@ -50,20 +50,46 @@ if df_kab.empty:
 else:
 
     # ================================
-    # TAMPILKAN DATASET RINGKAS
+    # Tampilkan Data
     # ================================
     st.subheader(f"Data TPT Kabupaten {kab}")
     st.dataframe(df_kab)
 
     # ================================
-    # PREDIKSI
+    # Prediksi
     # ================================
     if st.button("Prediksi"):
         hasil = model.predict(np.array([[tahun_pred]]))[0]
+
+        # Cari tahun sebelumnya
+        tahun_sebelumnya = tahun_pred - 1
+
+        # Jika datanya ada di dataset, gunakan
+        if tahun_sebelumnya in df_kab["tahun"].values:
+            tpt_lalu = df_kab[df_kab["tahun"] == tahun_sebelumnya]["tpt"].values[0]
+        else:
+            # Jika tidak ada datanya, prediksi juga
+            tpt_lalu = model.predict(np.array([[tahun_sebelumnya]]))[0]
+
+        # Tentukan status naik/turun
+        if hasil > tpt_lalu:
+            status = "📈 **Naik**"
+            warna = "red"
+        elif hasil < tpt_lalu:
+            status = "📉 **Turun**"
+            warna = "green"
+        else:
+            status = "➡️ **Tetap**"
+            warna = "gray"
+
+        # Tampilkan hasil
         st.success(f"Prediksi TPT {kab} Tahun {tahun_pred}: **{hasil:.2f}%**")
+        st.write(f"TPT Tahun {tahun_sebelumnya}: **{tpt_lalu:.2f}%**")
+
+        st.markdown(f"### Status Perubahan: <span style='color:{warna}; font-size:24px;'>{status}</span>", unsafe_allow_html=True)
 
     # ================================
-    # PLOT REGRESI LINEAR
+    # Grafik Regresi
     # ================================
     st.subheader("Grafik Regresi Linear")
 
