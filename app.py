@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import joblib
+import pickle
 
 # ---------------------------------------
 # LOAD MODEL .SAV
 # ---------------------------------------
-model = joblib.load("model_tpt.sav")
+model = pickle.load('model_tpt.sav', 'rb')
 
 # ---------------------------------------
 # LOAD DATASET
@@ -78,3 +78,4 @@ plt.grid(True)
 plt.legend()
 
 st.pyplot(plt)
+
