@@ -1,82 +1,79 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import joblib
+import matplotlib.pyplot as plt
 
-# ---------------------------------------
-# LOAD MODEL .SAV
-# ---------------------------------------
-model = joblib.load("pengangguran.sav")
+# ================================
+# TITLE
+# ================================
+st.title("Prediksi Tingkat Pengangguran Terbuka per Kabupaten")
+st.write("Model: Linear Regression")
 
-# ---------------------------------------
+# ================================
 # LOAD DATASET
-# ---------------------------------------
-df = pd.read_csv("bps-od_17044_tingkat_pengangguran_terbuka__kabupatenkota_data.csv")
+# ================================
+@st.cache_data
+def load_data():
+    df = pd.read_csv("bps-od_17044_tingkat_pengangguran_terbuka__kabupatenkota_data.csv")
+    df = df.rename(columns={
+        "tahun": "tahun",
+        "tingkat_pengangguran_terbuka": "tpt",
+        "nama_kabupaten_kota": "kabupaten"
+    })
+    return df
 
-# Pastikan kolom sesuai dataset kamu
-# kolom: tahun, nama_kabupaten_kota, tingkat_pengangguran_terbuka
+df = load_data()
 
-st.title("📊 Prediksi Tingkat Pengangguran Terbuka per Kabupaten/Kota")
+# ================================
+# LOAD MODEL
+# ================================
+@st.cache_resource
+def load_model():
+    return joblib.load("model_tpt.sav")
 
-# ---------------------------------------
-# DROPDOWN PILIH KABUPATEN
-# ---------------------------------------
-kabupaten_list = sorted(df["nama_kabupaten_kota"].unique())
-kabupaten = st.selectbox("Pilih Kabupaten/Kota:", kabupaten_list)
+model = load_model()
 
-df_kab = df[df["nama_kabupaten_kota"] == kabupaten]
+# ================================
+# INPUT USER
+# ================================
+kabupaten_list = sorted(df["kabupaten"].unique())
+kab = st.selectbox("Pilih Kabupaten:", kabupaten_list)
 
-st.write("### Data Historis:")
-st.dataframe(df_kab)
+tahun_pred = st.number_input("Masukkan Tahun Prediksi:", min_value=2025, max_value=2100, step=1)
 
-# ---------------------------------------
-# INPUT TAHUN PREDIKSI
-# ---------------------------------------
-tahun_max_dataset = int(df_kab["tahun"].max())
+# Filter dataset berdasarkan kabupaten
+df_kab = df[df["kabupaten"] == kab]
 
-tahun_prediksi = st.number_input(
-    "Prediksi sampai tahun berapa?",
-    min_value=tahun_max_dataset + 1,
-    max_value=2100,
-    value=tahun_max_dataset + 5
-)
+if df_kab.empty:
+    st.warning("Data kabupaten tidak ditemukan.")
+else:
 
-# ---------------------------------------
-# MELAKUKAN PREDIKSI
-# ---------------------------------------
-tahun_range = np.arange(tahun_max_dataset + 1, tahun_prediksi + 1).reshape(-1, 1)
-hasil_prediksi = model.predict(tahun_range)
+    # ================================
+    # TAMPILKAN DATASET RINGKAS
+    # ================================
+    st.subheader(f"Data TPT Kabupaten {kab}")
+    st.dataframe(df_kab)
 
-df_prediksi = pd.DataFrame({
-    "tahun": tahun_range.flatten(),
-    "prediksi_tpt": hasil_prediksi
-})
+    # ================================
+    # PREDIKSI
+    # ================================
+    if st.button("Prediksi"):
+        hasil = model.predict(np.array([[tahun_pred]]))[0]
+        st.success(f"Prediksi TPT {kab} Tahun {tahun_pred}: **{hasil:.2f}%**")
 
-st.write("### Hasil Prediksi:")
-st.dataframe(df_prediksi)
+    # ================================
+    # PLOT REGRESI LINEAR
+    # ================================
+    st.subheader("Grafik Regresi Linear")
 
-# ---------------------------------------
-# PLOTTING
-# ---------------------------------------
-st.write("### Grafik Prediksi TPT")
+    plt.figure(figsize=(8,5))
+    plt.scatter(df_kab["tahun"], df_kab["tpt"], label="Data Asli")
+    plt.plot(df_kab["tahun"], model.predict(df_kab[["tahun"]]), color="red", label="Regresi Linear")
+    plt.xlabel("Tahun")
+    plt.ylabel("TPT")
+    plt.title(f"Regresi TPT Kabupaten {kab}")
+    plt.grid(True)
+    plt.legend()
 
-plt.figure(figsize=(10, 6))
-
-# Data historis
-plt.plot(df_kab["tahun"], df_kab["tingkat_pengangguran_terbuka"],
-         marker='o', label="Data Historis")
-
-# Data prediksi
-plt.plot(df_prediksi["tahun"], df_prediksi["prediksi_tpt"],
-         marker='x', linestyle='--', label="Prediksi")
-
-plt.xlabel("Tahun")
-plt.ylabel("Tingkat Pengangguran Terbuka (%)")
-plt.title(f"Prediksi TPT Kabupaten/Kota: {kabupaten}")
-plt.grid(True)
-plt.legend()
-
-st.pyplot(plt)
-
-
+    st.pyplot(plt)
